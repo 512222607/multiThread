@@ -1,6 +1,7 @@
 package com.zhangzm.concurrency.module9;
 
-import java.util.concurrent.locks.Lock;
+import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Stream;
 
 /**
@@ -9,7 +10,7 @@ import java.util.stream.Stream;
  *
  * 生产者消费者模型1
  */
-public class ProduceConsumerVersion2 {
+public class ProduceConsumerVersion3 {
 
 	private int i = 1;
 
@@ -29,7 +30,7 @@ public class ProduceConsumerVersion2 {
 				i++;
 				System.out.println("P->"+i);//生产者 生产i++
 				isProduced = true;
-				LOCK.notify();
+				LOCK.notifyAll();
 			}
 		}
 	}
@@ -39,7 +40,7 @@ public class ProduceConsumerVersion2 {
 			if(isProduced){
 				System.out.println("C->"+i); //消费者消费i
 				isProduced = false;
-				LOCK.notify();
+				LOCK.notifyAll();
 			}else{
 				try {
 					LOCK.wait();
@@ -52,7 +53,7 @@ public class ProduceConsumerVersion2 {
 	}
 
 	public static void main(String[] args) {
-		ProduceConsumerVersion2 pc = new ProduceConsumerVersion2();
+		ProduceConsumerVersion3 pc = new ProduceConsumerVersion3();
 
 		//多个生产者  多个消费者会出现问题：并不是死锁，而是全部放弃执行权。
 		//p1生产，p1wait,p2wait，c1消费，c2wait
@@ -60,17 +61,27 @@ public class ProduceConsumerVersion2 {
 		//此时p1,p2,c1,c2全部进入wait状态。
 
 		//问题出在notify不确定唤醒的为哪个wait锁的线程，各个jvm的策略不同。可能为fifo或者其他策略。
-		Stream.of("P1","P2").forEach(n ->
+		Stream.of("P1","P2","P3","P4").forEach(n ->
 		new Thread(()->{
 			while (true){
 				pc.produce();
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		},n).start());
 
-		Stream.of("C1","C2").forEach(n ->
+		Stream.of("C1","C2","C3","C4").forEach(n ->
 			new Thread(()->{
 				while (true){
 					pc.consumer();
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			},n).start()
 		);
